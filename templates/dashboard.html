@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Dashboard - Professional Financial Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0c1445 0%, #1e3c72 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Smooth scrolling optimization */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            transform: translateZ(0); /* GPU acceleration */
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #64b5f6, #42a5f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .contrast-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .contrast-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .info-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(100, 181, 246, 0.2);
+            border: 1px solid #64b5f6;
+            color: #64b5f6;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .info-icon:hover {
+            background: rgba(100, 181, 246, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* CSS Variables for theme switching */
+        :root {
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --hover-bg: rgba(255, 255, 255, 0.15);
+        }
+
+        .high-contrast {
+            --card-bg: rgba(0, 0, 0, 0.4);
+            --border-color: rgba(255, 255, 255, 0.4);
+            --hover-bg: rgba(255, 255, 255, 0.25);
+        }
+
+        .last-updated {
+            color: #b0bec5;
+            font-size: 0.9rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            will-change: transform; /* Optimize for animations */
+        }
+
+        /* Only hover effect on dashboard cards, not trend section */
+        .dashboard-grid .card:hover,
+        .card:not(.trend-section .card):hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: var(--hover-bg);
+        }
+
+        /* Trend section card - no hover effect */
+        .trend-section .card {
+            transition: none;
+        }
+
+        .trend-section .card:hover {
+            transform: none;
+            box-shadow: none;
+            background: var(--card-bg);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #64b5f6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: #e1f5fe;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .positive {
+            color: #4caf50;
+        }
+
+        .negative {
+            color: #f44336;
+        }
+
+        .neutral {
+            color: #ff9800;
+        }
+
+        .sector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .sector-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .sector-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #2196f3, #21cbf3);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .trend-section {
+            margin-top: 30px;
+        }
+
+        .trend-subsection {
+            margin-bottom: 25px;
+        }
+
+        .trend-subsection-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #64b5f6;
+            margin-bottom: 15px;
+            padding: 10px 0;
+            border-bottom: 2px solid rgba(100, 181, 246, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ticker-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .add-ticker-btn {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .add-ticker-btn:hover {
+            background: rgba(76, 175, 80, 0.3);
+            transform: scale(1.05);
+        }
+
+        .ticker-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            width: 80px;
+            text-transform: uppercase;
+        }
+
+        .ticker-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .remove-ticker-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.7rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .remove-ticker-btn:hover {
+            background: rgba(244, 67, 54, 0.3);
+            transform: scale(1.1);
+        }
+
+        .trend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .trend-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease;
+            will-change: transform;
+            position: relative;
+        }
+
+        .trend-card:hover {
+            transform: translateY(-3px);
+            background: var(--hover-bg);
+        }
+
+        .trend-card:hover .remove-ticker-btn {
+            display: flex;
+        }
+
+        .trend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .trend-symbol {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #64b5f6;
+        }
+
+        .trend-score {
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: help;
+            position: relative;
+        }
+
+        .trend-rating {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .trend-components {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .component {
+            text-align: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: help;
+            transition: background 0.3s ease;
+        }
+
+        .component:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .component-label {
+            font-size: 0.8rem;
+            color: #b0bec5;
+            margin-bottom: 3px;
+        }
+
+        .component-value {
+            font-weight: 600;
+        }
+
+        .timeframe-alignment {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .timeframe-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            cursor: help;
+        }
+
+        .timeframe-label {
+            color: #b0bec5;
+            font-size: 0.9rem;
+        }
+
+        .signals {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .signals-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #64b5f6;
+        }
+
+        .signal-item {
+            font-size: 0.9rem;
+            color: #e1f5fe;
+            margin-bottom: 3px;
+        }
+
+        .risk-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .risk-low { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+        .risk-moderate { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+        .risk-high { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .risk-very-high { background: rgba(156, 39, 176, 0.2); color: #9c27b0; }
+
+        .strong-bullish { color: #4caf50; }
+        .bullish { color: #8bc34a; }
+        .neutral-bullish { color: #ffeb3b; }
+        .neutral-bearish { color: #ff9800; }
+        .bearish { color: #ff5722; }
+        .strong-bearish { color: #f44336; }
+
+        /* Info Modal */
+        .info-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .info-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid #64b5f6;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-modal h3 {
+            color: #64b5f6;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .info-modal p, .info-modal li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            color: #e1f5fe;
+        }
+
+        .info-modal ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #64b5f6;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(100, 181, 246, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .trend-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sector-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .trend-components {
+                grid-template-columns: 1fr;
+            }
+
+            .info-modal-content {
+                margin: 20px;
+                max-width: calc(100% - 40px);
+            }
+
+            .header-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .ticker-controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="info-icon" onclick="openInfoModal()">?</div>
+            <h1>🚀 Professional Market Intelligence Dashboard</h1>
+            <div class="last-updated" id="lastUpdated">Loading market data...</div>
+            <div class="header-controls">
+                <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
+                <button class="contrast-toggle" onclick="toggleContrast()">🎨 Toggle Contrast</button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Market Indices -->
+            <div class="card">
+                <div class="card-title">📈 Major Indices</div>
+                <div id="indices"></div>
+            </div>
+
+            <!-- Market Summary -->
+            <div class="card">
+                <div class="card-title">📊 Market Summary</div>
+                <div id="summary"></div>
+            </div>
+
+            <!-- Market Breadth -->
+            <div class="card">
+                <div class="card-title">🎯 Market Breadth</div>
+                <div id="breadth"></div>
+            </div>
+        </div>
+
+        <!-- Sectors -->
+        <div class="card">
+            <div class="card-title">🏭 Sector Performance</div>
+            <div class="sector-grid" id="sectors"></div>
+        </div>
+
+        <!-- Trend Analysis Section -->
+        <div class="trend-section">
+            <div class="card">
+                <div class="card-title">🎯 Consensus Trend Analysis</div>
+                
+                <!-- Market Indices Trends -->
+                <div class="trend-subsection">
+                    <div class="trend-subsection-title">
+                        <span>📊 Market Indices</span>
+                        <div class="ticker-controls">
+                            <input type="text" class="ticker-input" id="indexTickerInput" placeholder="SPY" maxlength="5">
+                            <button class="add-ticker-btn" onclick="addTicker('index')">+ Add Index</button>
+                        </div>
+                    </div>
+                    <div class="trend-grid" id="indexTrends"></div>
+                </div>
+
+                <!-- Individual Equities -->
+                <div class="trend-subsection">
+                    <div class="trend-subsection-title">
+                        <span>📈 Individual Equities</span>
+                        <div class="ticker-controls">
+                            <input type="text" class="ticker-input" id="equityTickerInput" placeholder="AAPL" maxlength="5">
+                            <button class="add-ticker-btn" onclick="addTicker('equity')">+ Add Stock</button>
+                        </div>
+                    </div>
+                    <div class="trend-grid" id="equityTrends"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div class="info-modal" id="infoModal">
+        <div class="info-modal-content">
+            <button class="close-modal" onclick="closeInfoModal()">×</button>
+            <h3>🎯 Consensus Trend Analysis Methodology</h3>
+            
+            <h3>📊 Trend Score Components (0-100):</h3>
+            <ul>
+                <li><strong>MA Alignment (25%):</strong> Price position vs 50/150/200-day MAs + MA hierarchy + MA trend direction</li>
+                <li><strong>Volume Strength (20%):</strong> Recent volume vs average + volume on up days vs down days</li>
+                <li><strong>Momentum (20%):</strong> Multi-timeframe price performance (5, 10, 20, 50 days)</li>
+                <li><strong>Relative Strength (20%):</strong> Performance vs SPY benchmark over multiple periods</li>
+                <li><strong>Stage Analysis (15%):</strong> Weinstein-style market stage identification</li>
+            </ul>
+
+            <h3>📈 Timeframe Analysis:</h3>
+            <ul>
+                <li><strong>Short-term (20d):</strong> Price above/below 20-day MA + MA direction</li>
+                <li><strong>Medium-term (50d):</strong> Price above/below 50-day MA + MA direction</li>
+                <li><strong>Long-term (200d):</strong> Price above/below 200-day MA + MA direction</li>
+            </ul>
+
+            <h3>🎯 Trend Ratings:</h3>
+            <ul>
+                <li><strong>Strong Bullish (80-100):</strong> Low risk, all systems aligned</li>
+                <li><strong>Bullish (65-79):</strong> Moderate risk, mostly positive signals</li>
+                <li><strong>Neutral Bullish (50-64):</strong> Mixed signals, slight bullish bias</li>
+                <li><strong>Neutral Bearish (35-49):</strong> Mixed signals, slight bearish bias</li>
+                <li><strong>Bearish (20-34):</strong> High risk, mostly negative signals</li>
+                <li><strong>Strong Bearish (0-19):</strong> Very high risk, all systems negative</li>
+            </ul>
+
+            <h3>🚨 Active Signals:</h3>
+            <ul>
+                <li><strong>Breakouts:</strong> New 20-day highs on volume</li>
+                <li><strong>MA Signals:</strong> Price above rising moving averages</li>
+                <li><strong>Volume Alerts:</strong> Institutional interest detection</li>
+            </ul>
+
+            <p><strong>Methodology combines techniques from Mark Minervini (SEPA), Brian Shannon (multi-timeframe), William O'Neil (CAN SLIM), and Stan Weinstein (stage analysis).</strong></p>
+        </div>
+    </div>
+
+    <script>
+        // Ticker management with database persistence
+        let customTickers = {
+            indices: ['SPY', 'QQQ', 'IWM'],
+            equities: ['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL']
+        };
+
+        // Generate session ID for user
+        function getSessionId() {
+            let sessionId = localStorage.getItem('dashboardSessionId');
+            if (!sessionId) {
+                sessionId = 'session_' + Math.random().toString(36).substr(2, 16);
+                localStorage.setItem('dashboardSessionId', sessionId);
+            }
+            return sessionId;
+        }
+
+        async function loadTickers() {
+            try {
+                const response = await fetch('/api/tickers', {
+                    headers: {
+                        'X-Session-ID': getSessionId()
+                    }
+                });
+                const data = await response.json();
+                customTickers = data;
+                console.log('Loaded tickers from database:', customTickers);
+            } catch (error) {
+                console.error('Error loading tickers from database:', error);
+                // Keep defaults on error
+            }
+        }
+
+        async function addTicker(type) {
+            const inputId = type === 'index' ? 'indexTickerInput' : 'equityTickerInput';
+            const input = document.getElementById(inputId);
+            const ticker = input.value.trim().toUpperCase();
+            
+            if (!ticker || ticker.length < 1) {
+                alert('Please enter a valid ticker symbol');
+                return;
+            }
+            
+            const tickerArray = type === 'index' ? customTickers.indices : customTickers.equities;
+            
+            if (tickerArray.includes(ticker)) {
+                alert(`${ticker} is already being tracked`);
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/tickers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': getSessionId()
+                    },
+                    body: JSON.stringify({
+                        symbol: ticker,
+                        type: type
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Add to local array
+                    tickerArray.push(ticker);
+                    
+                    // Clear input
+                    input.value = '';
+                    
+                    // Refresh trend data
+                    loadTrendData();
+                    
+                    alert(`${ticker} added successfully! Refreshing data...`);
+                } else {
+                    alert(result.error || 'Failed to add ticker');
+                }
+                
+            } catch (error) {
+                console.error('Error adding ticker:', error);
+                alert('Failed to add ticker. Please try again.');
+            }
+        }
+
+        async function removeTicker(symbol, type) {
+            if (confirm(`Remove ${symbol} from tracking?`)) {
+                try {
+                    const response = await fetch(`/api/tickers/${symbol}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Session-ID': getSessionId()
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        // Remove from local array
+                        const tickerArray = type === 'index' ? customTickers.indices : customTickers.equities;
+                        const index = tickerArray.indexOf(symbol);
+                        if (index > -1) {
+                            tickerArray.splice(index, 1);
+                        }
+                        
+                        // Refresh trend data
+                        loadTrendData();
+                        
+                        alert(`${symbol} removed successfully!`);
+                    } else {
+                        alert(result.error || 'Failed to remove ticker');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error removing ticker:', error);
+                    alert('Failed to remove ticker. Please try again.');
+                }
+            }
+        }
+
+        // Contrast toggle functionality with persistence
+        function toggleContrast() {
+            document.body.classList.toggle('high-contrast');
+            const isHighContrast = document.body.classList.contains('high-contrast');
+            const button = document.querySelector('.contrast-toggle');
+            button.textContent = isHighContrast ? '🎨 Standard Mode' : '🎨 High Contrast';
+            
+            // Save to database
+            saveUserPreference('contrast_mode', isHighContrast ? 'high' : 'standard');
+        }
+
+        function loadContrastSetting() {
+            // Load from localStorage as fallback
+            const savedContrast = localStorage.getItem('dashboardContrast');
+            if (savedContrast === 'high') {
+                document.body.classList.add('high-contrast');
+                const button = document.querySelector('.contrast-toggle');
+                if (button) button.textContent = '🎨 Standard Mode';
+            }
+        }
+
+        async function saveUserPreference(key, value) {
+            try {
+                await fetch('/api/user-preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': getSessionId()
+                    },
+                    body: JSON.stringify({
+                        preference_key: key,
+                        preference_value: value
+                    })
+                });
+                // Also save to localStorage as backup
+                localStorage.setItem(`dashboard${key.charAt(0).toUpperCase() + key.slice(1).replace('_', '')}`, value);
+            } catch (error) {
+                console.error('Error saving preference:', error);
+                // Fallback to localStorage
+                localStorage.setItem(`dashboard${key.charAt(0).toUpperCase() + key.slice(1).replace('_', '')}`, value);
+            }
+        }
+
+        async function loadUserPreferences() {
+            try {
+                const response = await fetch('/api/user-preferences', {
+                    headers: {
+                        'X-Session-ID': getSessionId()
+                    }
+                });
+                const preferences = await response.json();
+                
+                // Apply contrast setting
+                if (preferences.contrast_mode === 'high') {
+                    document.body.classList.add('high-contrast');
+                    const button = document.querySelector('.contrast-toggle');
+                    if (button) button.textContent = '🎨 Standard Mode';
+                }
+                
+                console.log('Loaded user preferences:', preferences);
+            } catch (error) {
+                console.error('Error loading preferences:', error);
+                // Fallback to localStorage
+                loadContrastSetting();
+            }
+        }
+
+        // Info modal functionality
+        function openInfoModal() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target === modal) {
+                closeInfoModal();
+            }
+        }
+
+        async function loadMarketData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                updateDashboard(data);
+            } catch (error) {
+                console.error('Error loading market data:', error);
+            }
+        }
+
+        async function loadTrendData() {
+            try {
+                const response = await fetch('/api/trend-data');
+                const trendData = await response.json();
+                updateTrendAnalysis(trendData);
+            } catch (error) {
+                console.error('Error loading trend data:', error);
+                document.getElementById('indexTrends').innerHTML = '<div style="text-align: center; color: #ff9800;">⚠️ Trend analysis loading...</div>';
+                document.getElementById('equityTrends').innerHTML = '';
+            }
+        }
+
+        function updateDashboard(data) {
+            updateIndices(data.indices || {});
+            updateSummary(data.summary || {});
+            updateBreadth(data.breadth || {});
+            updateSectors(data.sectors || {});
+            
+            document.getElementById('lastUpdated').textContent = 
+                `Last updated: ${new Date().toLocaleString()}`;
+        }
+
+        function updateIndices(indices) {
+            const container = document.getElementById('indices');
+            container.innerHTML = '';
+            
+            Object.values(indices).forEach(index => {
+                const changeClass = index.change_pct > 0 ? 'positive' : index.change_pct < 0 ? 'negative' : 'neutral';
+                container.innerHTML += `
+                    <div class="metric">
+                        <span class="metric-label">${index.name}</span>
+                        <div>
+                            <span class="metric-value">${parseFloat(index.price || 0).toFixed(2)}</span>
+                            <span class="metric-value ${changeClass}">
+                                ${index.change_pct > 0 ? '+' : ''}${parseFloat(index.change_pct || 0).toFixed(2)}%
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateSummary(summary) {
+            const container = document.getElementById('summary');
+            container.innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Overall Trend</span>
+                    <span class="metric-value ${getTrendClass(summary.overall_trend)}">${summary.overall_trend || 'N/A'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Participation</span>
+                    <span class="metric-value">${summary.participation || 'N/A'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Momentum</span>
+                    <span class="metric-value">${summary.momentum || 'N/A'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Market Score</span>
+                    <span class="metric-value ${getScoreClass(summary.market_score)}">${parseFloat(summary.market_score || 0).toFixed(1)}/100</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Positive Sectors</span>
+                    <span class="metric-value">${summary.positive_sectors || 0}/${summary.total_sectors || 0}</span>
+                </div>
+            `;
+        }
+
+        function updateBreadth(breadth) {
+            const container = document.getElementById('breadth');
+            container.innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Advancing</span>
+                    <span class="metric-value positive">${breadth.advancing || 0}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Declining</span>
+                    <span class="metric-value negative">${breadth.declining || 0}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">A/D Ratio</span>
+                    <span class="metric-value ${breadth.advance_decline_ratio > 1 ? 'positive' : 'negative'}">
+                        ${parseFloat(breadth.advance_decline_ratio || 0).toFixed(2)}
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">New Highs</span>
+                    <span class="metric-value positive">${breadth.new_highs || 0}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">New Lows</span>
+                    <span class="metric-value negative">${breadth.new_lows || 0}</span>
+                </div>
+            `;
+        }
+
+        function updateSectors(sectors) {
+            const container = document.getElementById('sectors');
+            container.innerHTML = '';
+            
+            Object.values(sectors).forEach(sector => {
+                const changeClass = sector.change_pct > 0 ? 'positive' : sector.change_pct < 0 ? 'negative' : 'neutral';
+                container.innerHTML += `
+                    <div class="sector-item">
+                        <span>${sector.name}</span>
+                        <span class="${changeClass}">
+                            ${sector.change_pct > 0 ? '+' : ''}${parseFloat(sector.change_pct || 0).toFixed(2)}%
+                        </span>
+                    </div>
+                `;
+            });
+        }
+
+        function updateTrendAnalysis(data) {
+            console.log('updateTrendAnalysis called with:', data);
+            
+            const indexContainer = document.getElementById('indexTrends');
+            const equityContainer = document.getElementById('equityTrends');
+            
+            if (!indexContainer || !equityContainer) {
+                console.error('Trend containers not found');
+                return;
+            }
+            
+            indexContainer.innerHTML = '';
+            equityContainer.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                indexContainer.innerHTML = '<div style="text-align: center; color: #ff9800;">⚠️ No trend data available</div>';
+                return;
+            }
+
+            // Define custom symbols from UI
+            const indexSymbols = customTickers.indices;
+            
+            // Separate indices and equities
+            const indices = data.filter(trend => indexSymbols.includes(trend.symbol));
+            const equities = data.filter(trend => customTickers.equities.includes(trend.symbol));
+
+            console.log('Filtered indices:', indices);
+            console.log('Filtered equities:', equities);
+
+            // Render indices
+            indices.forEach(trend => {
+                try {
+                    indexContainer.appendChild(createTrendCard(trend));
+                } catch (error) {
+                    console.error('Error creating trend card for', trend.symbol, error);
+                }
+            });
+
+            // Render equities
+            equities.forEach(trend => {
+                try {
+                    equityContainer.appendChild(createTrendCard(trend));
+                } catch (error) {
+                    console.error('Error creating trend card for', trend.symbol, error);
+                }
+            });
+        }
+
+        function createTrendCard(trend) {
+            const card = document.createElement('div');
+            card.className = 'trend-card';
+
+            const trendClass = getTrendRatingClass(trend.trend_rating);
+            const riskClass = getRiskClass(trend.risk_level);
+            
+            const signals = trend.signals ? JSON.parse(trend.signals || '[]') : [];
+            const signalsHtml = signals.length > 0 ? 
+                signals.map(signal => `<div class="signal-item">• ${signal}</div>`).join('') :
+                '<div class="signal-item">No active signals</div>';
+
+            const isIndex = customTickers.indices.includes(trend.symbol);
+            const tickerType = isIndex ? 'index' : 'equity';
+
+            card.innerHTML = `
+                <button class="remove-ticker-btn" onclick="removeTicker('${trend.symbol}', '${tickerType}')" title="Remove ${trend.symbol}">×</button>
+                <div class="trend-header">
+                    <div class="trend-symbol">${trend.symbol}</div>
+                    <div class="trend-score ${trendClass}">${trend.trend_score}/100</div>
+                </div>
+                
+                <div class="trend-rating ${trendClass}">
+                    ${trend.trend_rating}
+                    <span class="risk-badge ${riskClass}">${trend.risk_level} RISK</span>
+                </div>
+
+                <div class="trend-components">
+                    <div class="component" title="Moving Average Alignment: Price position vs MAs + MA hierarchy + MA trends">
+                        <div class="component-label">MA Alignment</div>
+                        <div class="component-value">${trend.components.ma_alignment}/100</div>
+                    </div>
+                    <div class="component" title="Volume Strength: Recent volume vs average + volume patterns">
+                        <div class="component-label">Volume</div>
+                        <div class="component-value">${trend.components.volume_strength}/100</div>
+                    </div>
+                    <div class="component" title="Momentum: Multi-timeframe price performance">
+                        <div class="component-label">Momentum</div>
+                        <div class="component-value">${trend.components.momentum}/100</div>
+                    </div>
+                    <div class="component" title="Relative Strength: Performance vs SPY benchmark">
+                        <div class="component-label">Rel. Strength</div>
+                        <div class="component-value">${trend.components.relative_strength}/100</div>
+                    </div>
+                </div>
+
+                <div class="timeframe-alignment">
+                    <div class="timeframe-row" title="Price vs 20-day MA + MA direction">
+                        <span class="timeframe-label">Short-term (20d):</span>
+                        <span class="${getTrendClass(trend.timeframe_alignment.short_term)}">${trend.timeframe_alignment.short_term}</span>
+                    </div>
+                    <div class="timeframe-row" title="Price vs 50-day MA + MA direction">
+                        <span class="timeframe-label">Medium-term (50d):</span>
+                        <span class="${getTrendClass(trend.timeframe_alignment.medium_term)}">${trend.timeframe_alignment.medium_term}</span>
+                    </div>
+                    <div class="timeframe-row" title="Price vs 200-day MA + MA direction">
+                        <span class="timeframe-label">Long-term (200d):</span>
+                        <span class="${getTrendClass(trend.timeframe_alignment.long_term)}">${trend.timeframe_alignment.long_term}</span>
+                    </div>
+                    <div class="timeframe-row" title="Overall timeframe alignment status">
+                        <strong>Alignment: <span class="${getTrendClass(trend.timeframe_alignment.alignment)}">${trend.timeframe_alignment.alignment}</span></strong>
+                    </div>
+                </div>
+
+                <div class="signals">
+                    <div class="signals-title">🚨 Active Signals</div>
+                    ${signalsHtml}
+                </div>
+            `;
+
+            return card;
+        }
+
+        function getTrendClass(trend) {
+            if (!trend) return 'neutral';
+            const t = trend.toLowerCase();
+            if (t.includes('bullish')) return 'positive';
+            if (t.includes('bearish')) return 'negative';
+            return 'neutral';
+        }
+
+        function getTrendRatingClass(rating) {
+            if (!rating) return '';
+            const r = rating.toLowerCase().replace(/\s+/g, '-');
+            return r;
+        }
+
+        function getRiskClass(risk) {
+            if (!risk) return '';
+            return 'risk-' + risk.toLowerCase().replace(/\s+/g, '-');
+        }
+
+        function getScoreClass(score) {
+            if (score >= 70) return 'positive';
+            if (score >= 30) return 'neutral';
+            return 'negative';
+        }
+
+        async function refreshData() {
+            const button = document.querySelector('.refresh-btn');
+            button.textContent = '🔄 Refreshing...';
+            button.disabled = true;
+            
+            try {
+                await fetch('/api/refresh');
+                await loadMarketData();
+                await loadTrendData();
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+            
+            button.textContent = '🔄 Refresh Data';
+            button.disabled = false;
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadUserPreferences();
+            await loadTickers();
+            loadMarketData();
+            loadTrendData();
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadMarketData();
+            loadTrendData();
+        }, 30000);
+    </script>
+</body>
+</html>
