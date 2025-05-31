@@ -20,7 +20,6 @@
             overflow-x: hidden;
         }
 
-        /* Smooth scrolling optimization */
         html {
             scroll-behavior: smooth;
         }
@@ -28,7 +27,7 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            transform: translateZ(0); /* GPU acceleration */
+            transform: translateZ(0);
         }
 
         .header {
@@ -57,6 +56,37 @@
             align-items: center;
             gap: 15px;
             margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #e1f5fe;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(244, 67, 54, 0.3);
+            transform: scale(1.05);
         }
 
         .contrast-toggle {
@@ -75,9 +105,6 @@
         }
 
         .info-icon {
-            position: absolute;
-            top: 20px;
-            right: 20px;
             background: rgba(100, 181, 246, 0.2);
             border: 1px solid #64b5f6;
             color: #64b5f6;
@@ -97,7 +124,6 @@
             transform: scale(1.1);
         }
 
-        /* CSS Variables for theme switching */
         :root {
             --card-bg: rgba(255, 255, 255, 0.1);
             --border-color: rgba(255, 255, 255, 0.2);
@@ -129,10 +155,9 @@
             padding: 20px;
             border: 1px solid var(--border-color);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            will-change: transform; /* Optimize for animations */
+            will-change: transform;
         }
 
-        /* Only hover effect on dashboard cards, not trend section */
         .dashboard-grid .card:hover,
         .card:not(.trend-section .card):hover {
             transform: translateY(-5px);
@@ -140,7 +165,6 @@
             background: var(--hover-bg);
         }
 
-        /* Trend section card - no hover effect */
         .trend-section .card {
             transition: none;
         }
@@ -567,18 +591,32 @@
                 flex-direction: column;
                 gap: 8px;
             }
+
+            .user-info {
+                position: static;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+
+            .logout-btn {
+                position: static;
+                display: inline-block;
+                margin: 0 auto;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="info-icon" onclick="openInfoModal()">?</div>
+            <div class="user-info">Welcome, {{ current_user.name }}!</div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">🚪 Sign Out</a>
             <h1>🚀 Professional Market Intelligence Dashboard</h1>
             <div class="last-updated" id="lastUpdated">Loading market data...</div>
             <div class="header-controls">
                 <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
                 <button class="contrast-toggle" onclick="toggleContrast()">🎨 Toggle Contrast</button>
+                <button class="info-icon" onclick="openInfoModal()">?</button>
             </div>
         </div>
 
@@ -684,29 +722,15 @@
     </div>
 
     <script>
-        // Ticker management with database persistence
+        // Ticker management with user authentication
         let customTickers = {
             indices: ['SPY', 'QQQ', 'IWM'],
             equities: ['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL']
         };
 
-        // Generate session ID for user
-        function getSessionId() {
-            let sessionId = localStorage.getItem('dashboardSessionId');
-            if (!sessionId) {
-                sessionId = 'session_' + Math.random().toString(36).substr(2, 16);
-                localStorage.setItem('dashboardSessionId', sessionId);
-            }
-            return sessionId;
-        }
-
         async function loadTickers() {
             try {
-                const response = await fetch('/api/tickers', {
-                    headers: {
-                        'X-Session-ID': getSessionId()
-                    }
-                });
+                const response = await fetch('/api/tickers');
                 const data = await response.json();
                 customTickers = data;
                 console.log('Loaded tickers from database:', customTickers);
@@ -739,8 +763,7 @@
                 const response = await fetch('/api/tickers', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Session-ID': getSessionId()
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         symbol: ticker,
@@ -756,25 +779,12 @@
                     // Clear input
                     input.value = '';
                     
-                    // Enhanced feedback based on server response
-                    if (result.backfilled) {
-                        showToast(`✅ ${ticker} added with ${result.records} days of data!`, 'success');
-                        // Immediate refresh since we have fresh data
-                        setTimeout(() => {
-                            loadTrendData();
-                            loadData();
-                        }, 500);
-                    } else if (result.existing_records) {
-                        showToast(`✅ ${ticker} added (${result.existing_records} existing records)`, 'success');
-                        // Quick refresh for existing data
-                        setTimeout(() => {
-                            loadTrendData();
-                        }, 500);
-                    } else {
-                        showToast(`✅ ${ticker} added - data loading in background...`, 'warning');
-                        // Standard refresh
+                    showToast(`✅ ${ticker} added successfully!`, 'success');
+                    
+                    // Refresh trend data
+                    setTimeout(() => {
                         loadTrendData();
-                    }
+                    }, 500);
                     
                 } else {
                     showToast(`❌ Error: ${result.error}`, 'error');
@@ -786,7 +796,39 @@
             }
         }
 
-        // Clean toast notification system (replaces alerts!)
+        async function removeTicker(symbol, type) {
+            if (confirm(`Remove ${symbol} from tracking?`)) {
+                try {
+                    const response = await fetch(`/api/tickers/${symbol}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        // Remove from local array
+                        const tickerArray = type === 'index' ? customTickers.indices : customTickers.equities;
+                        const index = tickerArray.indexOf(symbol);
+                        if (index > -1) {
+                            tickerArray.splice(index, 1);
+                        }
+                        
+                        // Refresh trend data
+                        loadTrendData();
+                        
+                        showToast(`${symbol} removed successfully!`, 'success');
+                    } else {
+                        showToast(result.error || 'Failed to remove ticker', 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error removing ticker:', error);
+                    showToast('Failed to remove ticker. Please try again.', 'error');
+                }
+            }
+        }
+
+        // Toast notification system
         function showToast(message, type = 'info') {
             // Remove any existing toast
             const existingToast = document.getElementById('active-toast');
@@ -833,202 +875,37 @@
             const delay = type === 'error' ? 6000 : (type === 'warning' ? 4000 : 3000);
             setTimeout(() => {
                 if (toast && toast.parentNode) {
-                    toast.classList.add('toast-exit');
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
                     setTimeout(() => toast.remove(), 300);
                 }
             }, delay);
             
             // Click to dismiss
             toast.addEventListener('click', () => {
-                toast.classList.add('toast-exit');
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
                 setTimeout(() => toast.remove(), 300);
             });
         }
 
-        // Auto-inject CSS animations (no external CSS file needed!)
-        function injectToastStyles() {
-            if (!document.getElementById('toast-styles')) {
-                const style = document.createElement('style');
-                style.id = 'toast-styles';
-                style.textContent = `
-                    @keyframes slideInFromRight {
-                        from { transform: translateX(100%); opacity: 0; }
-                        to { transform: translateX(0); opacity: 1; }
-                    }
-                    @keyframes slideOutToRight {
-                        from { transform: translateX(0); opacity: 1; }
-                        to { transform: translateX(100%); opacity: 0; }
-                    }
-                    .toast-notification {
-                        animation: slideInFromRight 0.3s ease;
-                    }
-                    .toast-notification:hover {
-                        transform: scale(1.02);
-                        cursor: pointer;
-                    }
-                    .toast-exit {
-                        animation: slideOutToRight 0.3s ease;
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-        }
-
-        function showTickerStatus(ticker, message, type) {
-            // Remove any existing status messages
-            const existingStatus = document.getElementById('ticker-status');
-            if (existingStatus) {
-                existingStatus.remove();
-            }
-            
-            // Create status message element
-            const statusDiv = document.createElement('div');
-            statusDiv.id = 'ticker-status';
-            statusDiv.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 8px;
-                color: white;
-                font-weight: bold;
-                z-index: 1000;
-                max-width: 300px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                transition: all 0.3s ease;
-            `;
-            
-            // Set colors based on type
-            const colors = {
-                'info': 'linear-gradient(135deg, #3498db, #2980b9)',
-                'success': 'linear-gradient(135deg, #27ae60, #229954)',
-                'warning': 'linear-gradient(135deg, #f39c12, #d68910)',
-                'error': 'linear-gradient(135deg, #e74c3c, #c0392b)'
-            };
-            
-            statusDiv.style.background = colors[type] || colors['info'];
-            statusDiv.textContent = message;
-            
-            // Add to page
-            document.body.appendChild(statusDiv);
-            
-            // Auto-remove after delay (longer for errors)
-            const delay = type === 'error' ? 6000 : (type === 'warning' ? 4000 : 3000);
-            setTimeout(() => {
-                if (statusDiv && statusDiv.parentNode) {
-                    statusDiv.style.opacity = '0';
-                    statusDiv.style.transform = 'translateX(100%)';
-                    setTimeout(() => statusDiv.remove(), 300);
-                }
-            }, delay);
-            
-            // Click to dismiss
-            statusDiv.addEventListener('click', () => {
-                statusDiv.style.opacity = '0';
-                statusDiv.style.transform = 'translateX(100%)';
-                setTimeout(() => statusDiv.remove(), 300);
-            });
-        }
-
-        async function removeTicker(symbol, type) {
-            if (confirm(`Remove ${symbol} from tracking?`)) {
-                try {
-                    const response = await fetch(`/api/tickers/${symbol}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-Session-ID': getSessionId()
-                        }
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (response.ok) {
-                        // Remove from local array
-                        const tickerArray = type === 'index' ? customTickers.indices : customTickers.equities;
-                        const index = tickerArray.indexOf(symbol);
-                        if (index > -1) {
-                            tickerArray.splice(index, 1);
-                        }
-                        
-                        // Refresh trend data
-                        loadTrendData();
-                        
-                        alert(`${symbol} removed successfully!`);
-                    } else {
-                        alert(result.error || 'Failed to remove ticker');
-                    }
-                    
-                } catch (error) {
-                    console.error('Error removing ticker:', error);
-                    alert('Failed to remove ticker. Please try again.');
-                }
-            }
-        }
-
-        // Contrast toggle functionality with persistence
+        // Contrast toggle functionality with localStorage persistence
         function toggleContrast() {
             document.body.classList.toggle('high-contrast');
             const isHighContrast = document.body.classList.contains('high-contrast');
             const button = document.querySelector('.contrast-toggle');
             button.textContent = isHighContrast ? '🎨 Standard Mode' : '🎨 High Contrast';
             
-            // Save to database
-            saveUserPreference('contrast_mode', isHighContrast ? 'high' : 'standard');
+            // Save to localStorage
+            localStorage.setItem('dashboardContrast', isHighContrast ? 'high' : 'standard');
         }
 
         function loadContrastSetting() {
-            // Load from localStorage as fallback
             const savedContrast = localStorage.getItem('dashboardContrast');
             if (savedContrast === 'high') {
                 document.body.classList.add('high-contrast');
                 const button = document.querySelector('.contrast-toggle');
                 if (button) button.textContent = '🎨 Standard Mode';
-            }
-        }
-
-        async function saveUserPreference(key, value) {
-            try {
-                await fetch('/api/user-preferences', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Session-ID': getSessionId()
-                    },
-                    body: JSON.stringify({
-                        preference_key: key,
-                        preference_value: value
-                    })
-                });
-                // Also save to localStorage as backup
-                localStorage.setItem(`dashboard${key.charAt(0).toUpperCase() + key.slice(1).replace('_', '')}`, value);
-            } catch (error) {
-                console.error('Error saving preference:', error);
-                // Fallback to localStorage
-                localStorage.setItem(`dashboard${key.charAt(0).toUpperCase() + key.slice(1).replace('_', '')}`, value);
-            }
-        }
-
-        async function loadUserPreferences() {
-            try {
-                const response = await fetch('/api/user-preferences', {
-                    headers: {
-                        'X-Session-ID': getSessionId()
-                    }
-                });
-                const preferences = await response.json();
-                
-                // Apply contrast setting
-                if (preferences.contrast_mode === 'high') {
-                    document.body.classList.add('high-contrast');
-                    const button = document.querySelector('.contrast-toggle');
-                    if (button) button.textContent = '🎨 Standard Mode';
-                }
-                
-                console.log('Loaded user preferences:', preferences);
-            } catch (error) {
-                console.error('Error loading preferences:', error);
-                // Fallback to localStorage
-                loadContrastSetting();
             }
         }
 
@@ -1227,28 +1104,40 @@
             const trendClass = getTrendRatingClass(trend.trend_rating);
             const riskClass = getRiskClass(trend.risk_level);
             
-            const signals = (() => {
-                console.log(`DEBUG ${trend.symbol} - signals raw:`, trend.signals);
-                console.log(`DEBUG ${trend.symbol} - signals type:`, typeof trend.signals);
-                console.log(`DEBUG ${trend.symbol} - signals length:`, trend.signals ? trend.signals.length : 'null');
-                
-                try {
-                    if (!trend.signals) {
-                        console.log(`DEBUG ${trend.symbol} - no signals, returning empty array`);
-                        return [];
+            // ROBUST signals parsing with guaranteed array result
+            let signals = [];
+            try {
+                if (trend.signals) {
+                    // Handle different possible formats
+                    if (Array.isArray(trend.signals)) {
+                        signals = trend.signals;
+                    } else if (typeof trend.signals === 'string') {
+                        try {
+                            const parsed = JSON.parse(trend.signals);
+                            signals = Array.isArray(parsed) ? parsed : [];
+                        } catch (parseError) {
+                            console.warn(`Failed to parse signals JSON for ${trend.symbol}:`, parseError);
+                            // Try to extract individual signals from a string format
+                            signals = trend.signals.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                        }
+                    } else if (typeof trend.signals === 'object' && trend.signals !== null) {
+                        // If it's an object, try to extract values
+                        signals = Object.values(trend.signals).filter(s => typeof s === 'string' && s.length > 0);
                     }
-                    const parsed = JSON.parse(trend.signals);
-                    console.log(`DEBUG ${trend.symbol} - successfully parsed:`, parsed);
-                    return parsed;
-                } catch (e) {
-                    console.error(`DEBUG ${trend.symbol} - JSON parse failed:`, e.message);
-                    console.error(`DEBUG ${trend.symbol} - problematic data:`, trend.signals);
-                    return [];
                 }
-            })();
+            } catch (error) {
+                console.error(`Complete signal parsing failed for ${trend.symbol}:`, error);
+                console.log('Raw signals data type:', typeof trend.signals);
+                console.log('Raw signals data:', trend.signals);
+            }
 
-            console.log(`${trend.symbol} signals:`, trend.signals);
+            // Final safety check - ensure signals is always an array
+            if (!Array.isArray(signals)) {
+                console.warn(`Signals is not an array for ${trend.symbol}, converting to empty array`);
+                signals = [];
+            }
 
+            // Generate signals HTML safely
             const signalsHtml = signals.length > 0 ? 
                 signals.map(signal => `<div class="signal-item">• ${signal}</div>`).join('') :
                 '<div class="signal-item">No active signals</div>';
@@ -1256,52 +1145,56 @@
             const isIndex = customTickers.indices.includes(trend.symbol);
             const tickerType = isIndex ? 'index' : 'equity';
 
+            // Safe access to nested objects with defaults
+            const components = trend.components || {};
+            const timeframe = trend.timeframe_alignment || {};
+
             card.innerHTML = `
                 <button class="remove-ticker-btn" onclick="removeTicker('${trend.symbol}', '${tickerType}')" title="Remove ${trend.symbol}">×</button>
                 <div class="trend-header">
                     <div class="trend-symbol">${trend.symbol}</div>
-                    <div class="trend-score ${trendClass}">${trend.trend_score}/100</div>
+                    <div class="trend-score ${trendClass}">${trend.trend_score || 0}/100</div>
                 </div>
                 
                 <div class="trend-rating ${trendClass}">
-                    ${trend.trend_rating}
-                    <span class="risk-badge ${riskClass}">${trend.risk_level} RISK</span>
+                    ${trend.trend_rating || 'N/A'}
+                    <span class="risk-badge ${riskClass}">${trend.risk_level || 'UNKNOWN'} RISK</span>
                 </div>
 
                 <div class="trend-components">
                     <div class="component" title="Moving Average Alignment: Price position vs MAs + MA hierarchy + MA trends">
                         <div class="component-label">MA Alignment</div>
-                        <div class="component-value">${trend.components.ma_alignment}/100</div>
+                        <div class="component-value">${components.ma_alignment || 0}/100</div>
                     </div>
                     <div class="component" title="Volume Strength: Recent volume vs average + volume patterns">
                         <div class="component-label">Volume</div>
-                        <div class="component-value">${trend.components.volume_strength}/100</div>
+                        <div class="component-value">${components.volume_strength || 0}/100</div>
                     </div>
                     <div class="component" title="Momentum: Multi-timeframe price performance">
                         <div class="component-label">Momentum</div>
-                        <div class="component-value">${trend.components.momentum}/100</div>
+                        <div class="component-value">${components.momentum || 0}/100</div>
                     </div>
                     <div class="component" title="Relative Strength: Performance vs SPY benchmark">
                         <div class="component-label">Rel. Strength</div>
-                        <div class="component-value">${trend.components.relative_strength}/100</div>
+                        <div class="component-value">${components.relative_strength || 0}/100</div>
                     </div>
                 </div>
 
                 <div class="timeframe-alignment">
                     <div class="timeframe-row" title="Price vs 20-day MA + MA direction">
                         <span class="timeframe-label">Short-term (20d):</span>
-                        <span class="${getTrendClass(trend.timeframe_alignment.short_term)}">${trend.timeframe_alignment.short_term}</span>
+                        <span class="${getTrendClass(timeframe.short_term)}">${timeframe.short_term || 'N/A'}</span>
                     </div>
                     <div class="timeframe-row" title="Price vs 50-day MA + MA direction">
                         <span class="timeframe-label">Medium-term (50d):</span>
-                        <span class="${getTrendClass(trend.timeframe_alignment.medium_term)}">${trend.timeframe_alignment.medium_term}</span>
+                        <span class="${getTrendClass(timeframe.medium_term)}">${timeframe.medium_term || 'N/A'}</span>
                     </div>
                     <div class="timeframe-row" title="Price vs 200-day MA + MA direction">
                         <span class="timeframe-label">Long-term (200d):</span>
-                        <span class="${getTrendClass(trend.timeframe_alignment.long_term)}">${trend.timeframe_alignment.long_term}</span>
+                        <span class="${getTrendClass(timeframe.long_term)}">${timeframe.long_term || 'N/A'}</span>
                     </div>
                     <div class="timeframe-row" title="Overall timeframe alignment status">
-                        <strong>Alignment: <span class="${getTrendClass(trend.timeframe_alignment.alignment)}">${trend.timeframe_alignment.alignment}</span></strong>
+                        <strong>Alignment: <span class="${getTrendClass(timeframe.alignment)}">${timeframe.alignment || 'N/A'}</span></strong>
                     </div>
                 </div>
 
@@ -1358,11 +1251,10 @@
 
         // Load data on page load
         document.addEventListener('DOMContentLoaded', async function() {
-            await loadUserPreferences();
+            loadContrastSetting();
             await loadTickers();
             loadMarketData();
             loadTrendData();
-            injectToastStyles();
         });
 
         // Auto-refresh every 30 seconds
