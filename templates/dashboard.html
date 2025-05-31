@@ -722,16 +722,18 @@
             const ticker = input.value.trim().toUpperCase();
             
             if (!ticker || ticker.length < 1) {
-                alert('Please enter a valid ticker symbol');
+                showToast('Please enter a valid ticker symbol', 'error');
                 return;
             }
             
             const tickerArray = type === 'index' ? customTickers.indices : customTickers.equities;
-            
             if (tickerArray.includes(ticker)) {
-                alert(`${ticker} is already being tracked`);
+                showToast(`${ticker} is already being tracked`, 'warning');
                 return;
             }
+            
+            // Show immediate feedback
+            showToast(`Adding ${ticker}...`, 'info');
             
             try {
                 const response = await fetch('/api/tickers', {
@@ -751,22 +753,181 @@
                 if (response.ok) {
                     // Add to local array
                     tickerArray.push(ticker);
-                    
                     // Clear input
                     input.value = '';
                     
-                    // Refresh trend data
-                    loadTrendData();
+                    // Enhanced feedback based on server response
+                    if (result.backfilled) {
+                        showToast(`✅ ${ticker} added with ${result.records} days of data!`, 'success');
+                        // Immediate refresh since we have fresh data
+                        setTimeout(() => {
+                            loadTrendData();
+                            loadData();
+                        }, 500);
+                    } else if (result.existing_records) {
+                        showToast(`✅ ${ticker} added (${result.existing_records} existing records)`, 'success');
+                        // Quick refresh for existing data
+                        setTimeout(() => {
+                            loadTrendData();
+                        }, 500);
+                    } else {
+                        showToast(`✅ ${ticker} added - data loading in background...`, 'warning');
+                        // Standard refresh
+                        loadTrendData();
+                    }
                     
-                    alert(`${ticker} added successfully! Refreshing data...`);
                 } else {
-                    alert(result.error || 'Failed to add ticker');
+                    showToast(`❌ Error: ${result.error}`, 'error');
                 }
                 
             } catch (error) {
                 console.error('Error adding ticker:', error);
-                alert('Failed to add ticker. Please try again.');
+                showToast('❌ Failed to add ticker. Please try again.', 'error');
             }
+        }
+
+        // Clean toast notification system (replaces alerts!)
+        function showToast(message, type = 'info') {
+            // Remove any existing toast
+            const existingToast = document.getElementById('active-toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.id = 'active-toast';
+            toast.className = 'toast-notification';
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 1000;
+                max-width: 350px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                transition: all 0.3s ease;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 14px;
+                line-height: 1.4;
+            `;
+            
+            // Set colors based on type
+            const backgrounds = {
+                'info': 'linear-gradient(135deg, #3498db, #2980b9)',
+                'success': 'linear-gradient(135deg, #27ae60, #229954)', 
+                'warning': 'linear-gradient(135deg, #f39c12, #d68910)',
+                'error': 'linear-gradient(135deg, #e74c3c, #c0392b)'
+            };
+            
+            toast.style.background = backgrounds[type] || backgrounds['info'];
+            toast.textContent = message;
+            
+            // Add to page
+            document.body.appendChild(toast);
+            
+            // Auto-remove after delay
+            const delay = type === 'error' ? 6000 : (type === 'warning' ? 4000 : 3000);
+            setTimeout(() => {
+                if (toast && toast.parentNode) {
+                    toast.classList.add('toast-exit');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, delay);
+            
+            // Click to dismiss
+            toast.addEventListener('click', () => {
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            });
+        }
+
+        // Auto-inject CSS animations (no external CSS file needed!)
+        function injectToastStyles() {
+            if (!document.getElementById('toast-styles')) {
+                const style = document.createElement('style');
+                style.id = 'toast-styles';
+                style.textContent = `
+                    @keyframes slideInFromRight {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOutToRight {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                    .toast-notification {
+                        animation: slideInFromRight 0.3s ease;
+                    }
+                    .toast-notification:hover {
+                        transform: scale(1.02);
+                        cursor: pointer;
+                    }
+                    .toast-exit {
+                        animation: slideOutToRight 0.3s ease;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        function showTickerStatus(ticker, message, type) {
+            // Remove any existing status messages
+            const existingStatus = document.getElementById('ticker-status');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            // Create status message element
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'ticker-status';
+            statusDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 1000;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                transition: all 0.3s ease;
+            `;
+            
+            // Set colors based on type
+            const colors = {
+                'info': 'linear-gradient(135deg, #3498db, #2980b9)',
+                'success': 'linear-gradient(135deg, #27ae60, #229954)',
+                'warning': 'linear-gradient(135deg, #f39c12, #d68910)',
+                'error': 'linear-gradient(135deg, #e74c3c, #c0392b)'
+            };
+            
+            statusDiv.style.background = colors[type] || colors['info'];
+            statusDiv.textContent = message;
+            
+            // Add to page
+            document.body.appendChild(statusDiv);
+            
+            // Auto-remove after delay (longer for errors)
+            const delay = type === 'error' ? 6000 : (type === 'warning' ? 4000 : 3000);
+            setTimeout(() => {
+                if (statusDiv && statusDiv.parentNode) {
+                    statusDiv.style.opacity = '0';
+                    statusDiv.style.transform = 'translateX(100%)';
+                    setTimeout(() => statusDiv.remove(), 300);
+                }
+            }, delay);
+            
+            // Click to dismiss
+            statusDiv.addEventListener('click', () => {
+                statusDiv.style.opacity = '0';
+                statusDiv.style.transform = 'translateX(100%)';
+                setTimeout(() => statusDiv.remove(), 300);
+            });
         }
 
         async function removeTicker(symbol, type) {
@@ -1066,7 +1227,28 @@
             const trendClass = getTrendRatingClass(trend.trend_rating);
             const riskClass = getRiskClass(trend.risk_level);
             
-            const signals = trend.signals ? JSON.parse(trend.signals || '[]') : [];
+            const signals = (() => {
+                console.log(`DEBUG ${trend.symbol} - signals raw:`, trend.signals);
+                console.log(`DEBUG ${trend.symbol} - signals type:`, typeof trend.signals);
+                console.log(`DEBUG ${trend.symbol} - signals length:`, trend.signals ? trend.signals.length : 'null');
+                
+                try {
+                    if (!trend.signals) {
+                        console.log(`DEBUG ${trend.symbol} - no signals, returning empty array`);
+                        return [];
+                    }
+                    const parsed = JSON.parse(trend.signals);
+                    console.log(`DEBUG ${trend.symbol} - successfully parsed:`, parsed);
+                    return parsed;
+                } catch (e) {
+                    console.error(`DEBUG ${trend.symbol} - JSON parse failed:`, e.message);
+                    console.error(`DEBUG ${trend.symbol} - problematic data:`, trend.signals);
+                    return [];
+                }
+            })();
+
+            console.log(`${trend.symbol} signals:`, trend.signals);
+
             const signalsHtml = signals.length > 0 ? 
                 signals.map(signal => `<div class="signal-item">• ${signal}</div>`).join('') :
                 '<div class="signal-item">No active signals</div>';
@@ -1180,6 +1362,7 @@
             await loadTickers();
             loadMarketData();
             loadTrendData();
+            injectToastStyles();
         });
 
         // Auto-refresh every 30 seconds
